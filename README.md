@@ -4,6 +4,25 @@ Welcome. In this lab, you will use OpenCode inside the LaunchPad **VS Code Envir
 
 You do not need to install Docker, configure GPUs, or provide an NGC key.
 
+## NVIDIA LaunchPad Environment
+
+NVIDIA LaunchPad provides a ready-to-use GPU development environment with common tools, resources, and IDE extensions already configured.
+
+This deployment includes:
+
+- NVIDIA Cloud Native Stack with Docker
+- Code Server with a prepared workspace
+- Full `sudo` privileges on the GPU node
+- Optional SSH access for direct hardware access
+
+You will use the **Code Server IDE** for this lab. LaunchPad also provides a browser desktop environment, WebSSH, and Jupyter Notebook if you need them.
+
+## Local Nemotron 3 Super Model
+
+This lab uses **NVIDIA Nemotron 3 Super 120B A12B FP8** through a local NVIDIA NIM endpoint. It is a 120B-parameter, 12B-active model designed for agentic workflows, tool use, RAG, and long-context reasoning.
+
+In this lab, staff have already deployed the model locally on the LaunchPad GPU node and configured OpenCode to use it.
+
 ## 1. Open the VS Code Environment
 
 Staff will provide the LaunchPad URL for your lab environment. It will look like this:
