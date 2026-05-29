@@ -19,12 +19,12 @@ DOCKER_PLATFORM=linux/amd64
 NIM_MODEL_PROFILE=57d42cc7d33914933427e7f8d8cb1773bc11e5c96826c92095820a8776e6a4f6
 NIM_MAX_MODEL_LEN=32768
 NIM_KVCACHE_PERCENT=0.9
-NIM_PASSTHROUGH_ARGS="--enable-auto-tool-choice --tool-call-parser qwen3_coder"
+NIM_PASSTHROUGH_ARGS="--enable-auto-tool-choice --tool-call-parser qwen3_coder --default-chat-template-kwargs '{\"enable_thinking\":false}'"
 ```
 
 That profile ID maps to `vllm-fp8-tp2-pp1-65.0` and requires at least 65 GB/GPU. The `NIM_MAX_MODEL_LEN=32768` cap is important for two-GPU deployments. The full BF16 model is much heavier, so FP8 is the sensible target for two H100 80GB GPUs.
 
-The `NIM_PASSTHROUGH_ARGS` line enables OpenAI-compatible tool calling. This is required for clients such as opencode that send `tool_choice: "auto"`.
+The `NIM_PASSTHROUGH_ARGS` line enables OpenAI-compatible tool calling. This is required for clients such as opencode that send `tool_choice: "auto"`. It also disables default thinking text so clients do not show internal reasoning such as `</think>`.
 
 The separate Turbo image, `nvcr.io/nim/nvidia/nemotron-3-super-120b-a12b-turbo:1.0.0`, exists, but NVIDIA's current Turbo support matrix lists B200/NVFP4 and H200/FP8 configurations rather than 2x H100. Keep Turbo as a later experiment, not the default for this host.
 

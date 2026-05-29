@@ -22,6 +22,10 @@ https://<uuid>.nvidialaunchpad.com/launch
 
 ![VS Code Terminal menu with New Terminal selected](images/launchpad2.png)
 
+You can maximize the terminal by clicking the up arrow icon on the right side of the terminal panel.
+
+![VS Code terminal maximize icon](images/launchpad3.png)
+
 ## 2. Check the Local Model
 
 ```bash
@@ -49,7 +53,11 @@ Start OpenCode:
 opencode
 ```
 
-Inside OpenCode, use:
+OpenCode should default to **Nemotron 3 Super 120B A12B (local NIM)** as shown:
+
+![OpenCode showing the local Nemotron 3 Super model selected](images/opencode1.png)
+
+If it does not, you can select the model inside OpenCode:
 
 ```text
 /models
@@ -66,7 +74,7 @@ NVIDIA NIM Local / Nemotron 3 Super 120B A12B (local NIM)
 Try:
 
 ```text
-Inspect this project and tell me how it is organized. Do not make changes yet.
+Create a simple Hello World program in Python. Keep your response short: tell me the file you created and how to run it.
 ```
 
 Use `Tab` to switch between Plan and Build modes.
@@ -80,5 +88,7 @@ docker ps --filter name=nemotron3-super-nim
 ```
 
 If you see an error about `tool_choice` or tool calls, ask staff to restart NIM with tool calling enabled.
+
+If OpenCode shows internal thinking text such as `</think>`, ask staff to refresh the OpenCode local NIM config.
 
 We will refine this participant guide before the lab.

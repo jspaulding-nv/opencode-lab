@@ -85,13 +85,6 @@ cd opencode-lab
 chmod +x deploy-nemotron3-super-nim.sh
 ```
 
-Install small CLI utilities if missing:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y curl jq git ca-certificates
-```
-
 ## 3. Configure NIM
 
 Create a local env file:
@@ -101,13 +94,13 @@ cp .env.super.example .env.super
 chmod 600 .env.super
 ```
 
-Edit it:
+Open the file in VS Code:
 
 ```bash
-nano .env.super
+code-server .env.super
 ```
 
-Set:
+Paste the NGC API key into the `NGC_API_KEY` value:
 
 ```bash
 NGC_API_KEY=paste_your_ngc_api_key_here
@@ -123,11 +116,11 @@ DOCKER_PLATFORM=linux/amd64
 NIM_MODEL_PROFILE=57d42cc7d33914933427e7f8d8cb1773bc11e5c96826c92095820a8776e6a4f6
 NIM_MAX_MODEL_LEN=32768
 NIM_KVCACHE_PERCENT=0.9
-NIM_PASSTHROUGH_ARGS="--enable-auto-tool-choice --tool-call-parser qwen3_coder"
+NIM_PASSTHROUGH_ARGS="--enable-auto-tool-choice --tool-call-parser qwen3_coder --default-chat-template-kwargs '{\"enable_thinking\":false}'"
 NIM_PER_REQ_METRICS_ENABLE=1
 ```
 
-The profile ID maps to `vllm-fp8-tp2-pp1-65.0`, which is compatible with two H100 80GB-class GPUs. `NIM_PASSTHROUGH_ARGS` is required because OpenCode sends OpenAI tool calls with `tool_choice: "auto"`.
+The profile ID maps to `vllm-fp8-tp2-pp1-65.0`, which is compatible with two H100 80GB-class GPUs. `NIM_PASSTHROUGH_ARGS` is required because OpenCode sends OpenAI tool calls with `tool_choice: "auto"`. It also disables default thinking text so OpenCode does not show internal reasoning such as `</think>`.
 
 ## 4. Deploy Nemotron 3 Super NIM
 
@@ -143,15 +136,34 @@ If replacing a previous run:
 RECREATE=1 ./deploy-nemotron3-super-nim.sh
 ```
 
+You should see the terminal pull the image from NGC and then print output similar to:
+
+```text
+Starting nemotron3-super-nim on host port 8000...
+Using NIM_MODEL_PROFILE=57d42cc7d33914933427e7f8d8cb1773bc11e5c96826c92095820a8776e6a4f6, NIM_MAX_MODEL_LEN=32768
+ff4b1cc5cf3335cd30dec687a7b230fe52f6e581443c9fdf8576facb14b09f33
+
+Started nemotron3-super-nim.
+```
+
 Watch startup:
 
 ```bash
 docker logs -f nemotron3-super-nim
 ```
 
-Startup can take a while while NIM downloads and prepares model artifacts.
+Press `Control-C` when you are done watching the logs.
 
-Check readiness:
+Startup can take several minutes while NIM downloads and prepares model artifacts.
+
+Look for these lines in the Docker logs:
+
+```text
+(APIServer pid=77) INFO:     Waiting for application startup.
+(APIServer pid=77) INFO:     Application startup complete.
+```
+
+Check readiness from the terminal:
 
 ```bash
 curl -fsS http://127.0.0.1:8000/v1/health/ready
@@ -165,6 +177,8 @@ nvidia/nemotron-3-super-120b-a12b
 ```
 
 ## 5. Smoke Test NIM
+
+The first request can take about a minute while the model warms up.
 
 ```bash
 MODEL="$(curl -s http://127.0.0.1:8000/v1/models | jq -r '.data[0].id')"
@@ -224,10 +238,10 @@ export PATH="$HOME/.opencode/bin:$PATH"
 opencode --version
 ```
 
-Alternative with npm:
+If the `opencode` command is still not found after installation, reload the shell config because the installer added OpenCode to `PATH`:
 
 ```bash
-npm install -g opencode-ai
+source ~/.bashrc
 opencode --version
 ```
 
@@ -246,17 +260,25 @@ Confirm the config:
 cat ~/.config/opencode/opencode.json
 ```
 
-It should point to:
+Look for the `baseURL` value. It should point to:
 
 ```text
 http://127.0.0.1:8000/v1
 ```
 
-and select:
+Look for the `model` value. It should point to:
 
 ```text
 nim-local/nvidia/nemotron-3-super-120b-a12b
 ```
+
+Look for the model `options.chat_template_kwargs.enable_thinking` value. It should be:
+
+```text
+false
+```
+
+This keeps OpenCode from showing the model's internal thinking text.
 
 Validate OpenCode non-interactively:
 
@@ -270,7 +292,11 @@ Start the TUI:
 opencode
 ```
 
-Inside OpenCode:
+It should default to the local Nemotron 3 Super model as shown:
+
+![OpenCode showing the local Nemotron 3 Super model selected](images/opencode1.png)
+
+If it does not, select the model inside OpenCode:
 
 ```text
 /models
@@ -280,6 +306,12 @@ Select:
 
 ```text
 NVIDIA NIM Local / Nemotron 3 Super 120B A12B (local NIM)
+```
+
+Exit OpenCode:
+
+```text
+/exit
 ```
 
 ## 8. Participant Handoff
@@ -292,9 +324,13 @@ curl -fsS http://127.0.0.1:8000/v1/health/ready
 opencode --version
 ```
 
-Point participants to [README.md](./README.md).
+Put VS Code back into the default participant state:
 
-For multi-participant labs, give each participant a separate UNIX user or at least a separate project directory. The NIM service can be shared on `localhost:8000`, but OpenCode's file-editing tools operate in the participant's current workspace.
+1. Close any open editor tabs.
+2. Open the README preview and leave only the **[Preview] README.md** tab open.
+3. Kill the current **bash** terminal by clicking the trash icon on the right side of the terminal panel.
+
+Point participants to [README.md](./README.md).
 
 ## Troubleshooting
 
@@ -307,7 +343,7 @@ docker pull --platform linux/amd64 \
   nvcr.io/nim/nvidia/nemotron-3-super-120b-a12b@sha256:e24028cbc5bf3b3c1755ad37f898a0cd954845ab8c7012eb490aed4ac55b44ea
 ```
 
-### OpenCode Shows No Feedback or Tool Choice Error
+### OpenCode Shows No Feedback, Tool Choice Error, or Thinking Text
 
 If OpenCode shows:
 
@@ -315,10 +351,10 @@ If OpenCode shows:
 "auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set
 ```
 
-make sure `.env.super` contains:
+or if OpenCode shows internal thinking text such as `</think>`, make sure `.env.super` contains:
 
 ```bash
-NIM_PASSTHROUGH_ARGS="--enable-auto-tool-choice --tool-call-parser qwen3_coder"
+NIM_PASSTHROUGH_ARGS="--enable-auto-tool-choice --tool-call-parser qwen3_coder --default-chat-template-kwargs '{\"enable_thinking\":false}'"
 ```
 
 Then restart:
@@ -413,6 +449,15 @@ docker logout nvcr.io
 
 Do not remove `~/.docker/config.json` unless this machine has no other Docker registry logins you care about.
 
+### Remove the Cloned Lab Repo
+
+If you cloned the repo into the default home-directory location used in this guide:
+
+```bash
+cd ~
+rm -rf ~/opencode-lab
+```
+
 ### Uninstall OpenCode
 
 If installed with the official install script:
@@ -452,12 +497,6 @@ hash -r
 ```
 
 If OpenCode was installed under a different user or shell, remove the equivalent OpenCode PATH block from that user's shell config.
-
-If installed with npm:
-
-```bash
-npm uninstall -g opencode-ai
-```
 
 Remove OpenCode config and local auth/session data:
 
