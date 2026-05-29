@@ -139,6 +139,12 @@ If you test the UI in a browser, style changes may be cached. If your latest cha
 Add a cache buster so the browser loads the latest CSS and JavaScript.
 ```
 
+When you are done, quit OpenCode with:
+
+```text
+/exit
+```
+
 ## 8. Quick Troubleshooting
 
 If OpenCode does not respond, ask staff to check that the NIM container is running:
