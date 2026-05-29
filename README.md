@@ -41,10 +41,10 @@ nvidia/nemotron-3-super-120b-a12b
 
 ## 3. Start OpenCode
 
-Go to the lab project directory:
+Go to your Documents workspace:
 
 ```bash
-cd ~/opencode-lab
+cd ~/Documents
 ```
 
 Start OpenCode:
@@ -74,12 +74,72 @@ NVIDIA NIM Local / Nemotron 3 Super 120B A12B (local NIM)
 Try:
 
 ```text
-Create a simple Hello World program in Python. Keep your response short: tell me the file you created and how to run it.
+Create a simple Hello World program in Python. Keep your response short: tell me the file you created and how to run it with python3.
 ```
 
-Use `Tab` to switch between Plan and Build modes.
+## 5. Planning Mode
 
-## 5. Quick Troubleshooting
+For the next prompt, press `Tab` to switch into **Plan** mode. Plan mode is indicated by the orange line and orange text.
+
+Paste this prompt:
+
+```text
+I want to build a simple, fun web-based To-Do list app with neon colors. It should let me add tasks, delete them, and play a 'ding' sound when I complete one.
+```
+
+In Planning mode, OpenCode may ask follow-up questions like the app scope, storage behavior, sound effect, or whether to proceed. Use the arrow keys to choose an option and press `Enter` to confirm. If offered, you can also type your own answer.
+
+## 6. Test the App
+
+Press `Tab` to switch back into **Build** mode.
+
+Paste this prompt:
+
+```text
+Run the app on port 8001.
+```
+
+OpenCode will run the server for about 2 minutes to test it.
+
+You may see a notification in the bottom-right corner of VS Code that your app is running on port `8001`. Click the green **Open in Browser** button.
+
+![VS Code port notification for port 8001](images/launchpad4.png)
+
+If you missed the notification, open the **Ports** tab next to the **Terminal** tab. Look for the line for port `8001`. Under **Forwarded Addresses**, hover over the address and click the globe icon to open the app in your browser.
+
+![VS Code Ports tab showing the forwarded port globe icon](images/launchpad5.png)
+
+You can also create another terminal and run the Python server yourself:
+
+```bash
+python3 -m http.server 8001
+```
+
+## 7. Keep Experimenting
+
+Now try modifying the app. Stay in **Build** mode and ask OpenCode for small changes, then run the app again.
+
+Example prompts:
+
+```text
+Change the background to a neon sunset gradient.
+```
+
+```text
+Make the font bigger and easier to read.
+```
+
+```text
+Add a fun animation when I complete a task.
+```
+
+If you test the UI in a browser, style changes may be cached. If your latest changes do not show up, ask OpenCode to include a cache buster.
+
+```text
+Add a cache buster so the browser loads the latest CSS and JavaScript.
+```
+
+## 8. Quick Troubleshooting
 
 If OpenCode does not respond, ask staff to check that the NIM container is running:
 
