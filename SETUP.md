@@ -48,6 +48,14 @@ Staff must provide:
 
 ## 1. Confirm the LaunchPad Host
 
+After you enter the LaunchPad environment, open the **Resources** menu and select **Code Server IDE**.
+
+![LaunchPad Resources menu with Code Server IDE selected](images/launchpad1.png)
+
+In VS Code, create a new Bash terminal by going to **Terminal > New Terminal**.
+
+![VS Code Terminal menu with New Terminal selected](images/launchpad2.png)
+
 Run these commands in the VS Code Server terminal:
 
 ```bash

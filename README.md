@@ -6,12 +6,21 @@ You do not need to install Docker, configure GPUs, or provide an NGC key.
 
 ## 1. Open the VS Code Environment
 
-In NVIDIA LaunchPad:
+Staff will provide the LaunchPad URL for your lab environment. It will look like this:
 
-1. Log in to the lab environment.
-2. Open the **Resources** menu.
-3. Select **Code Server IDE**.
-4. Open a terminal in VS Code.
+```text
+https://<uuid>.nvidialaunchpad.com/launch
+```
+
+1. Open the LaunchPad URL in your browser.
+2. On the login page, sign in or sign up with your email address for an NVIDIA account.
+3. After you enter the LaunchPad environment, open the **Resources** menu and select **Code Server IDE**.
+
+![LaunchPad Resources menu with Code Server IDE selected](images/launchpad1.png)
+
+4. In VS Code, create a new Bash terminal by going to **Terminal > New Terminal**.
+
+![VS Code Terminal menu with New Terminal selected](images/launchpad2.png)
 
 ## 2. Check the Local Model
 
