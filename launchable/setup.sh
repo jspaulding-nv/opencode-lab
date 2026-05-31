@@ -5,6 +5,8 @@ set -euo pipefail
 # In the Brev Launchable networking step, expose CODE_SERVER_PORT as a Secure Link
 # or TCP port. The default is 8080.
 
+INSTALL_OPENCODE="${INSTALL_OPENCODE:-1}"
+OPENCODE_INSTALL_URL="${OPENCODE_INSTALL_URL:-https://opencode.ai/install}"
 CODE_SERVER_PORT="${CODE_SERVER_PORT:-8080}"
 CODE_SERVER_BIND_ADDR="${CODE_SERVER_BIND_ADDR:-0.0.0.0:${CODE_SERVER_PORT}}"
 CODE_SERVER_AUTH="${CODE_SERVER_AUTH:-password}"
@@ -86,6 +88,9 @@ CONFIG_DIR="$TARGET_HOME/.config/code-server"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
 DATA_DIR="$TARGET_HOME/.local/share/code-server"
 EXTENSIONS_DIR="$DATA_DIR/extensions"
+OPENCODE_BIN_DIR="$TARGET_HOME/.opencode/bin"
+OPENCODE_BIN="$OPENCODE_BIN_DIR/opencode"
+SERVICE_PATH="$OPENCODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 case "$CODE_SERVER_AUTH" in
   password | none) ;;
@@ -97,7 +102,7 @@ esac
 
 log "Installing prerequisites"
 run_root apt-get update
-run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl openssl
+run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git openssl unzip
 
 if ! command -v code-server >/dev/null 2>&1; then
   log "Installing code-server"
@@ -117,6 +122,24 @@ fi
 if [[ -z "$CODE_SERVER_BIN" ]]; then
   echo "code-server installed, but the executable was not found on PATH." >&2
   exit 1
+fi
+
+if [[ "$INSTALL_OPENCODE" == "1" ]]; then
+  if [[ -x "$OPENCODE_BIN" ]]; then
+    log "OpenCode is already installed: $OPENCODE_BIN"
+  else
+    log "Installing OpenCode for $TARGET_USER"
+    run_as_target_user env HOME="$TARGET_HOME" SHELL=/bin/bash OPENCODE_INSTALL_URL="$OPENCODE_INSTALL_URL" \
+      bash -c 'set -euo pipefail; curl -fsSL "$OPENCODE_INSTALL_URL" | bash'
+  fi
+
+  run_as_target_user env HOME="$TARGET_HOME" bash -c '
+    set -euo pipefail
+    profile="$HOME/.bashrc"
+    line='\''export PATH="$HOME/.opencode/bin:$PATH"'\''
+    touch "$profile"
+    grep -qxF "$line" "$profile" || printf "\n%s\n" "$line" >> "$profile"
+  '
 fi
 
 log "Writing code-server configuration for $TARGET_USER"
@@ -168,6 +191,7 @@ User=$TARGET_USER
 Group=$TARGET_GROUP
 WorkingDirectory=$CODE_SERVER_WORKSPACE
 Environment=HOME=$TARGET_HOME
+Environment=PATH=$SERVICE_PATH
 ExecStart=$CODE_SERVER_BIN --config $CONFIG_FILE --user-data-dir $DATA_DIR --extensions-dir $EXTENSIONS_DIR $CODE_SERVER_WORKSPACE
 Restart=always
 RestartSec=5
@@ -185,7 +209,7 @@ if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
   run_root systemctl --no-pager --full status "$CODE_SERVER_SERVICE_NAME.service" || true
 else
   log "systemd is unavailable; starting code-server with nohup for this session"
-  run_as_target_user nohup "$CODE_SERVER_BIN" \
+  run_as_target_user env HOME="$TARGET_HOME" PATH="$SERVICE_PATH" nohup "$CODE_SERVER_BIN" \
     --config "$CONFIG_FILE" \
     --user-data-dir "$DATA_DIR" \
     --extensions-dir "$EXTENSIONS_DIR" \
@@ -209,6 +233,19 @@ Password:  $CODE_SERVER_PASSWORD
 EOF
 fi
 
+if [[ "$INSTALL_OPENCODE" == "1" ]]; then
+  OPENCODE_VERSION="$(run_as_target_user env HOME="$TARGET_HOME" PATH="$SERVICE_PATH" bash -c 'opencode --version' 2>/dev/null || true)"
+  if [[ -n "$OPENCODE_VERSION" ]]; then
+    cat <<EOF
+OpenCode:  $OPENCODE_VERSION
+EOF
+  else
+    cat <<EOF
+OpenCode:  installed at $OPENCODE_BIN
+EOF
+  fi
+fi
+
 cat <<EOF
 
 Brev Launchable networking:
@@ -218,4 +255,5 @@ Override examples:
   CODE_SERVER_PORT=9090 ./launchable/setup.sh
   CODE_SERVER_PASSWORD='choose-a-password' ./launchable/setup.sh
   CODE_SERVER_AUTH=none ./launchable/setup.sh
+  INSTALL_OPENCODE=0 ./launchable/setup.sh
 EOF
