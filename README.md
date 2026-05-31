@@ -158,13 +158,49 @@ If you test the UI in a browser, style changes may be cached. If your latest cha
 Add a cache buster so the browser loads the latest CSS and JavaScript.
 ```
 
+## 8. Advanced Exercise
+
+If you finish early, turn the To-Do list into a more complete app. Try these prompts one at a time, testing after each change:
+
+```text
+Add localStorage so tasks stay saved after I refresh the page.
+```
+
+```text
+Add filters for All, Active, and Completed tasks.
+```
+
+```text
+Add an edit button so I can rename a task.
+```
+
+```text
+Add keyboard support: Enter adds a task and Escape cancels editing.
+```
+
+```text
+Make the app responsive and polished on mobile.
+```
+
+Ask OpenCode to review before making the next change:
+
+```text
+Review the code and suggest three improvements before changing anything.
+```
+
+Then ask OpenCode to explain what it built:
+
+```text
+Explain the main files in this app and how the UI state works. Keep it beginner friendly.
+```
+
 When you are done, quit OpenCode with:
 
 ```text
 /exit
 ```
 
-## 8. Quick Troubleshooting
+## 9. Quick Troubleshooting
 
 If OpenCode does not respond, ask staff to check that the NIM container is running:
 

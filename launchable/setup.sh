@@ -6,6 +6,7 @@ set -euo pipefail
 # or TCP port. The default is 8080.
 
 INSTALL_OPENCODE="${INSTALL_OPENCODE:-1}"
+OPENCODE_DEFAULT_MODEL="${OPENCODE_DEFAULT_MODEL:-opencode/nemotron-3-super-free}"
 OPENCODE_INSTALL_URL="${OPENCODE_INSTALL_URL:-https://opencode.ai/install}"
 CODE_SERVER_PORT="${CODE_SERVER_PORT:-8080}"
 CODE_SERVER_BIND_ADDR="${CODE_SERVER_BIND_ADDR:-0.0.0.0:${CODE_SERVER_PORT}}"
@@ -84,10 +85,19 @@ TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 TARGET_GROUP="$(id -gn "$TARGET_USER")"
 CODE_SERVER_WORKSPACE="${CODE_SERVER_WORKSPACE:-$TARGET_HOME}"
 EXPOSE_PORT="${CODE_SERVER_BIND_ADDR##*:}"
-CONFIG_DIR="$TARGET_HOME/.config/code-server"
+CONFIG_HOME_DIR="$TARGET_HOME/.config"
+LOCAL_DIR="$TARGET_HOME/.local"
+LOCAL_SHARE_DIR="$LOCAL_DIR/share"
+CACHE_DIR="$TARGET_HOME/.cache"
+CONFIG_DIR="$CONFIG_HOME_DIR/code-server"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
-DATA_DIR="$TARGET_HOME/.local/share/code-server"
+DATA_DIR="$LOCAL_SHARE_DIR/code-server"
 EXTENSIONS_DIR="$DATA_DIR/extensions"
+USER_SETTINGS_DIR="$DATA_DIR/User"
+USER_SETTINGS_FILE="$USER_SETTINGS_DIR/settings.json"
+OPENCODE_DATA_DIR="$LOCAL_SHARE_DIR/opencode"
+OPENCODE_CONFIG_DIR="$CONFIG_HOME_DIR/opencode"
+OPENCODE_CONFIG_FILE="$OPENCODE_CONFIG_DIR/opencode.json"
 OPENCODE_BIN_DIR="$TARGET_HOME/.opencode/bin"
 OPENCODE_BIN="$OPENCODE_BIN_DIR/opencode"
 SERVICE_PATH="$OPENCODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -102,7 +112,27 @@ esac
 
 log "Installing prerequisites"
 run_root apt-get update
-run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git openssl unzip
+run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git jq openssl unzip
+
+log "Preparing user-local directories"
+run_root install -d -m 755 -o "$TARGET_USER" -g "$TARGET_GROUP" \
+  "$CONFIG_HOME_DIR" \
+  "$LOCAL_DIR" \
+  "$LOCAL_SHARE_DIR" \
+  "$CACHE_DIR" \
+  "$OPENCODE_DATA_DIR" \
+  "$OPENCODE_CONFIG_DIR"
+run_root chown "$TARGET_USER:$TARGET_GROUP" \
+  "$CONFIG_HOME_DIR" \
+  "$LOCAL_DIR" \
+  "$LOCAL_SHARE_DIR" \
+  "$CACHE_DIR" \
+  "$OPENCODE_DATA_DIR" \
+  "$OPENCODE_CONFIG_DIR"
+
+if [[ -d "$TARGET_HOME/.opencode" ]]; then
+  run_root chown -R "$TARGET_USER:$TARGET_GROUP" "$TARGET_HOME/.opencode"
+fi
 
 if ! command -v code-server >/dev/null 2>&1; then
   log "Installing code-server"
@@ -130,7 +160,12 @@ if [[ "$INSTALL_OPENCODE" == "1" ]]; then
   else
     log "Installing OpenCode for $TARGET_USER"
     run_as_target_user env HOME="$TARGET_HOME" SHELL=/bin/bash OPENCODE_INSTALL_URL="$OPENCODE_INSTALL_URL" \
+      XDG_CONFIG_HOME="$CONFIG_HOME_DIR" XDG_DATA_HOME="$LOCAL_SHARE_DIR" XDG_CACHE_HOME="$CACHE_DIR" \
       bash -c 'set -euo pipefail; curl -fsSL "$OPENCODE_INSTALL_URL" | bash'
+  fi
+
+  if [[ -d "$TARGET_HOME/.opencode" ]]; then
+    run_root chown -R "$TARGET_USER:$TARGET_GROUP" "$TARGET_HOME/.opencode"
   fi
 
   run_as_target_user env HOME="$TARGET_HOME" bash -c '
@@ -140,11 +175,37 @@ if [[ "$INSTALL_OPENCODE" == "1" ]]; then
     touch "$profile"
     grep -qxF "$line" "$profile" || printf "\n%s\n" "$line" >> "$profile"
   '
+
+  log "Writing OpenCode defaults"
+  OPENCODE_CONFIG_TMP="$(mktemp)"
+  OPENCODE_DEFAULT_CONFIG_TMP="$(mktemp)"
+  jq -n --arg model "$OPENCODE_DEFAULT_MODEL" '{
+    "$schema": "https://opencode.ai/config.json",
+    "model": $model,
+    "small_model": $model,
+    "agent": {
+      "build": {
+        "model": $model
+      },
+      "plan": {
+        "model": $model
+      }
+    }
+  }' >"$OPENCODE_DEFAULT_CONFIG_TMP"
+
+  if [[ -s "$OPENCODE_CONFIG_FILE" ]] && jq empty "$OPENCODE_CONFIG_FILE" >/dev/null 2>&1; then
+    jq -s '.[0] * .[1]' "$OPENCODE_CONFIG_FILE" "$OPENCODE_DEFAULT_CONFIG_TMP" >"$OPENCODE_CONFIG_TMP"
+  else
+    cp "$OPENCODE_DEFAULT_CONFIG_TMP" "$OPENCODE_CONFIG_TMP"
+  fi
+
+  run_root install -m 644 -o "$TARGET_USER" -g "$TARGET_GROUP" "$OPENCODE_CONFIG_TMP" "$OPENCODE_CONFIG_FILE"
+  rm -f "$OPENCODE_CONFIG_TMP" "$OPENCODE_DEFAULT_CONFIG_TMP"
 fi
 
 log "Writing code-server configuration for $TARGET_USER"
 run_root install -d -m 700 -o "$TARGET_USER" -g "$TARGET_GROUP" "$CONFIG_DIR"
-run_root install -d -m 755 -o "$TARGET_USER" -g "$TARGET_GROUP" "$DATA_DIR" "$EXTENSIONS_DIR"
+run_root install -d -m 755 -o "$TARGET_USER" -g "$TARGET_GROUP" "$DATA_DIR" "$EXTENSIONS_DIR" "$USER_SETTINGS_DIR"
 if [[ ! -d "$CODE_SERVER_WORKSPACE" ]]; then
   run_root install -d -m 755 -o "$TARGET_USER" -g "$TARGET_GROUP" "$CODE_SERVER_WORKSPACE"
 fi
@@ -176,6 +237,26 @@ CONFIG_TMP="$(mktemp)"
 run_root install -m 600 -o "$TARGET_USER" -g "$TARGET_GROUP" "$CONFIG_TMP" "$CONFIG_FILE"
 rm -f "$CONFIG_TMP"
 
+log "Writing VS Code Server defaults"
+SETTINGS_TMP="$(mktemp)"
+DEFAULT_SETTINGS_TMP="$(mktemp)"
+cat >"$DEFAULT_SETTINGS_TMP" <<'EOF'
+{
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.secondarySideBar.defaultVisibility": "hidden"
+}
+EOF
+
+if [[ -s "$USER_SETTINGS_FILE" ]] && jq empty "$USER_SETTINGS_FILE" >/dev/null 2>&1; then
+  jq -s '.[0] * .[1]' "$USER_SETTINGS_FILE" "$DEFAULT_SETTINGS_TMP" >"$SETTINGS_TMP"
+else
+  cp "$DEFAULT_SETTINGS_TMP" "$SETTINGS_TMP"
+fi
+
+run_root install -m 644 -o "$TARGET_USER" -g "$TARGET_GROUP" "$SETTINGS_TMP" "$USER_SETTINGS_FILE"
+rm -f "$SETTINGS_TMP" "$DEFAULT_SETTINGS_TMP"
+run_root chown -R "$TARGET_USER:$TARGET_GROUP" "$CONFIG_DIR" "$DATA_DIR" "$OPENCODE_DATA_DIR" "$OPENCODE_CONFIG_DIR"
+
 log "Creating systemd service"
 SERVICE_FILE="/etc/systemd/system/${CODE_SERVER_SERVICE_NAME}.service"
 SERVICE_TMP="$(mktemp)"
@@ -192,6 +273,9 @@ Group=$TARGET_GROUP
 WorkingDirectory=$CODE_SERVER_WORKSPACE
 Environment=HOME=$TARGET_HOME
 Environment=PATH=$SERVICE_PATH
+Environment=XDG_CONFIG_HOME=$CONFIG_HOME_DIR
+Environment=XDG_DATA_HOME=$LOCAL_SHARE_DIR
+Environment=XDG_CACHE_HOME=$CACHE_DIR
 ExecStart=$CODE_SERVER_BIN --config $CONFIG_FILE --user-data-dir $DATA_DIR --extensions-dir $EXTENSIONS_DIR $CODE_SERVER_WORKSPACE
 Restart=always
 RestartSec=5
@@ -209,7 +293,9 @@ if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
   run_root systemctl --no-pager --full status "$CODE_SERVER_SERVICE_NAME.service" || true
 else
   log "systemd is unavailable; starting code-server with nohup for this session"
-  run_as_target_user env HOME="$TARGET_HOME" PATH="$SERVICE_PATH" nohup "$CODE_SERVER_BIN" \
+  run_as_target_user env HOME="$TARGET_HOME" PATH="$SERVICE_PATH" \
+    XDG_CONFIG_HOME="$CONFIG_HOME_DIR" XDG_DATA_HOME="$LOCAL_SHARE_DIR" XDG_CACHE_HOME="$CACHE_DIR" \
+    nohup "$CODE_SERVER_BIN" \
     --config "$CONFIG_FILE" \
     --user-data-dir "$DATA_DIR" \
     --extensions-dir "$EXTENSIONS_DIR" \
@@ -234,7 +320,7 @@ EOF
 fi
 
 if [[ "$INSTALL_OPENCODE" == "1" ]]; then
-  OPENCODE_VERSION="$(run_as_target_user env HOME="$TARGET_HOME" PATH="$SERVICE_PATH" bash -c 'opencode --version' 2>/dev/null || true)"
+  OPENCODE_VERSION="$(run_as_target_user env HOME="$TARGET_HOME" PATH="$SERVICE_PATH" XDG_CONFIG_HOME="$CONFIG_HOME_DIR" XDG_DATA_HOME="$LOCAL_SHARE_DIR" XDG_CACHE_HOME="$CACHE_DIR" bash -c 'opencode --version' 2>/dev/null || true)"
   if [[ -n "$OPENCODE_VERSION" ]]; then
     cat <<EOF
 OpenCode:  $OPENCODE_VERSION
@@ -244,6 +330,9 @@ EOF
 OpenCode:  installed at $OPENCODE_BIN
 EOF
   fi
+  cat <<EOF
+Default model: $OPENCODE_DEFAULT_MODEL
+EOF
 fi
 
 cat <<EOF
@@ -255,5 +344,6 @@ Override examples:
   CODE_SERVER_PORT=9090 ./launchable/setup.sh
   CODE_SERVER_PASSWORD='choose-a-password' ./launchable/setup.sh
   CODE_SERVER_AUTH=password ./launchable/setup.sh
+  OPENCODE_DEFAULT_MODEL=opencode/gpt-5.5 ./launchable/setup.sh
   INSTALL_OPENCODE=0 ./launchable/setup.sh
 EOF
