@@ -9,7 +9,7 @@ INSTALL_OPENCODE="${INSTALL_OPENCODE:-1}"
 OPENCODE_INSTALL_URL="${OPENCODE_INSTALL_URL:-https://opencode.ai/install}"
 CODE_SERVER_PORT="${CODE_SERVER_PORT:-8080}"
 CODE_SERVER_BIND_ADDR="${CODE_SERVER_BIND_ADDR:-0.0.0.0:${CODE_SERVER_PORT}}"
-CODE_SERVER_AUTH="${CODE_SERVER_AUTH:-password}"
+CODE_SERVER_AUTH="${CODE_SERVER_AUTH:-none}"
 CODE_SERVER_USER="${CODE_SERVER_USER:-}"
 CODE_SERVER_WORKSPACE="${CODE_SERVER_WORKSPACE:-}"
 CODE_SERVER_SERVICE_NAME="${CODE_SERVER_SERVICE_NAME:-code-server}"
@@ -254,6 +254,6 @@ Brev Launchable networking:
 Override examples:
   CODE_SERVER_PORT=9090 ./launchable/setup.sh
   CODE_SERVER_PASSWORD='choose-a-password' ./launchable/setup.sh
-  CODE_SERVER_AUTH=none ./launchable/setup.sh
+  CODE_SERVER_AUTH=password ./launchable/setup.sh
   INSTALL_OPENCODE=0 ./launchable/setup.sh
 EOF

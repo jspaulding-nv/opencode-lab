@@ -14,4 +14,6 @@ VS Code Server runs through code-server, so users can edit files, open terminals
 
 By default, VS Code Server is exposed on port `8080`.
 
+No code-server password is required by default; the Brev environment link opens directly into the workspace.
+
 OpenCode is installed for the VM user and added to the shell `PATH`, so it is available in new terminals inside VS Code Server.
