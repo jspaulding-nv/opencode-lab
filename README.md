@@ -58,6 +58,55 @@ Expected model:
 nvidia/nemotron-3-super-120b-a12b
 ```
 
+### If NIM Is Not Yet Deployed
+
+Staff normally deploys NIM before the lab starts. If the readiness check fails and staff asks you to deploy it yourself, make sure staff has already prepared `.env.super`, then go to the lab repo and start the container:
+
+```bash
+cd ~/opencode-lab
+./deploy-nemotron3-super-nim.sh
+```
+
+If replacing a previous run:
+
+```bash
+RECREATE=1 ./deploy-nemotron3-super-nim.sh
+```
+
+You should see the terminal pull the image from NGC and then print output similar to:
+
+```text
+Starting nemotron3-super-nim on host port 8000...
+Using NIM_MODEL_PROFILE=57d42cc7d33914933427e7f8d8cb1773bc11e5c96826c92095820a8776e6a4f6, NIM_MAX_MODEL_LEN=32768
+ff4b1cc5cf3335cd30dec687a7b230fe52f6e581443c9fdf8576facb14b09f33
+
+Started nemotron3-super-nim.
+```
+
+Watch startup:
+
+```bash
+docker logs -f nemotron3-super-nim
+```
+
+Press `Control-C` when you are done watching the logs.
+
+Startup can take several minutes while NIM downloads and prepares model artifacts.
+
+Look for these lines in the Docker logs:
+
+```text
+(APIServer pid=77) INFO:     Waiting for application startup.
+(APIServer pid=77) INFO:     Application startup complete.
+```
+
+Check readiness from the terminal again:
+
+```bash
+curl -fsS http://127.0.0.1:8000/v1/health/ready
+curl -s http://127.0.0.1:8000/v1/models | jq .
+```
+
 ## 3. Start OpenCode
 
 Go to your Documents workspace:
