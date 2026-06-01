@@ -1,12 +1,14 @@
 # Brev Launchable: VS Code Server + OpenCode
 
+[Launch this Brev environment](https://brev.nvidia.com/launchable/deploy/now?launchableID=env-3ETZ0C9mesCKRPbfqAAdijzrV8S)
+
 This is a NVIDIA Brev Launchable for a browser-based VS Code Server development environment with OpenCode installed.
 
 OpenCode is an AI coding agent that runs in the terminal. It can inspect a repository, edit files, run commands, and help users build, debug, and iterate on code from inside the workspace.
 
 This Launchable defaults OpenCode to **Nemotron 3 Super Free** through OpenCode Zen. You do not need to install Docker, configure GPUs, run a local model server, or provide an API key for the default experience.
 
-VS Code Server runs through code-server and is exposed on port `8080` by default. No code-server password is required by default; the Brev environment link opens directly into the workspace.
+VS Code Server runs through code-server and is available through a Brev Secure Link on port `8080` by default. No code-server password is required by default; the Brev environment link opens directly into the workspace.
 
 The default editor theme is dark, and the Chat panel on the right is hidden on startup.
 
@@ -19,14 +21,20 @@ This Launchable provides:
 - OpenCode available from the integrated terminal
 - Nemotron 3 Super Free selected by default through OpenCode Zen
 - A prepared repository workspace for the lab
-- Port `8080` for VS Code Server
-- Optional app ports, such as `8001`, for testing web apps
+- Secure Link on port `8080` for VS Code Server
+- Optional Secure Link app ports, such as `8001`, for testing web apps
 
 ## 1. Open VS Code Server
 
-Open the Brev Launchable link and select the exposed VS Code Server port, usually port `8080`.
+Open the Brev instance page, then go to the **Access** tab on the right side of the page. Scroll down to the **Using Secure Links** section.
 
-In VS Code Server, create a new Bash terminal by going to **Terminal > New Terminal**.
+![Brev Using Secure Links section showing port 8080](../images/brev.png)
+
+There will be a Secure Link for port `8080`. Open that link to access VS Code Server.
+
+When VS Code Server opens, you may see a prompt asking whether you trust the authors of the files in the folder. For this lab, click **Yes, I trust the authors** so VS Code Server enables all workspace features.
+
+In VS Code Server, create a new Bash terminal by clicking the menu icon with three lines in the top-left corner, then selecting **Terminal > New Terminal**.
 
 You can maximize the terminal by clicking the fullscreen-style icon on the right side of the terminal panel.
 
@@ -203,4 +211,4 @@ for path in "$HOME/.local" "$HOME/.config" "$HOME/.cache" "$HOME/.opencode"; do
 done
 ```
 
-If a web app does not open, confirm the app is running on an exposed port such as `8001`, then check the VS Code **Ports** tab.
+If a web app does not open, confirm the app is running on a configured Secure Link port such as `8001`, then check the VS Code **Ports** tab.
