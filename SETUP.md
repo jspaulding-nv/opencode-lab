@@ -250,6 +250,7 @@ opencode --version
 For the current user in this VS Code Server environment:
 
 ```bash
+cd ~/opencode-lab
 mkdir -p ~/.config/opencode
 cp opencode-nim-local.json ~/.config/opencode/opencode.json
 ```
